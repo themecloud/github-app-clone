@@ -1,0 +1,30 @@
+{
+  "name": "github-clone-app",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "octokit": "^3.1.2",
+    "dotenv": "^16.4.5",
+    "simple-git": "^3.22.0",
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@octokit/types": "^12.6.0",
+    "@types/node-fetch": "^2.6.11",
+    "typescript": "^5.3.3"
+  },
+  "bin": {
+    "app-clone": "./bin/run.js"
+  },
+  "oclif": {
+    "bin": "app-clone",
+    "commands": "./dist/commands",
+    "dirname": "app-clone",
+    "topicSeparator": " "
+  }
+}

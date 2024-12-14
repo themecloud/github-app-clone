@@ -1,0 +1,92 @@
+import { App } from 'octokit';
+import { config } from 'dotenv';
+import simpleGit, { SimpleGit } from 'simple-git';
+import fs from 'fs/promises';
+
+// Load environment variables
+config();
+
+interface Config {
+  appId: string;
+  privateKey: string;
+  githubUser: string;
+  repository: string;
+  branch?: string;
+  commit?: string;
+}
+
+const {
+  APP_ID,
+  PRIVATE_KEY,
+  GITHUB_USER,
+  REPOSITORY,
+  BRANCH,
+  COMMIT
+} = process.env;
+
+// Validate required environment variables
+if (!APP_ID || !PRIVATE_KEY || !GITHUB_USER || !REPOSITORY) {
+  throw new Error('Missing required environment variables');
+}
+
+async function main(): Promise<void> {
+  try {
+    // Initialize GitHub App
+    const app = new App({
+      appId: APP_ID,
+      privateKey: PRIVATE_KEY,
+    });
+
+    // Get the installation ID for the specified user
+    const installations = await app.octokit.request('GET /app/installations');
+    const userInstallation = installations.data.find(
+      installation => installation.account.login === GITHUB_USER
+    );
+
+    if (!userInstallation) {
+      throw new Error(`No installation found for user ${GITHUB_USER}`);
+    }
+
+    // Create an authenticated client for the installation
+    const octokit = await app.getInstallationOctokit(userInstallation.id);
+
+    // Get repository information
+    const [owner, repo] = REPOSITORY.split('/');
+
+    // Create a directory for the clone if it doesn't exist
+    const cloneDir = './repo-clone';
+    await fs.mkdir(cloneDir, { recursive: true });
+
+    // Initialize git
+    const git: SimpleGit = simpleGit();
+
+    // Get the repository clone URL
+    const repoData = await octokit.request('GET /repos/{owner}/{repo}', {
+      owner,
+      repo,
+    });
+
+    // Clone the repository
+    console.log('Cloning repository...');
+    await git.clone(repoData.data.clone_url, cloneDir);
+
+    // Change to the specified branch if provided
+    if (BRANCH) {
+      console.log(`Checking out branch: ${BRANCH}`);
+      await git.cwd(cloneDir).checkout(BRANCH);
+    }
+
+    // Checkout specific commit if provided
+    if (COMMIT) {
+      console.log(`Checking out commit: ${COMMIT}`);
+      await git.cwd(cloneDir).checkout(COMMIT);
+    }
+
+    console.log('Repository cloned successfully!');
+  } catch (error) {
+    console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+    process.exit(1);
+  }
+}
+
+main();
