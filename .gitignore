@@ -26,3 +26,5 @@ yarn-error.log*
 .vscode/
 *.swp
 *.swo
+*.pem
+repo-clone/
